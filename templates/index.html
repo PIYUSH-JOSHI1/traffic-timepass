@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Detection</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+</head>
+<body>
+    <button id="run-detection-btn">Run Detection</button>
+    <div id="results"></div>
+    <script>
+        $(document).ready(function() {
+            $("#run-detection-btn").click(function() {
+                $.ajax({
+                    url: '/run_detection',
+                    method: 'POST',
+                    success: function(response) {
+                        $("#results").html("Vehicle Count: " + response.vehicle_count);
+                        // Example: Update UI based on lane counts (if included)
+                        // if (response.lane1_count) {
+                        //     $("#lane1-count").html(response.lane1_count);
+                        // }
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        console.error("Error:", textStatus, errorThrown);
+                        $("#results").html("Error!");
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
