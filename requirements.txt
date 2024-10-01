@@ -1,15 +1,6 @@
-numpy
-opencv-python
-opencv-python-headless  # Use this if you don't need GUI features
-ultralytics
-cvzone
-# sort should be replaced or removed if it's not required
-# Use a compatible package for tracking, like `filterpy` for Kalman filtering if needed
-# Alternatively, you might need to use the local implementation of SORT
-streamlit==1.18.0
-opencv-python==4.7.0.72
+streamlit==1.20.0
 opencv-python-headless==4.7.0.72
-ultralytics==8.0.0  # Adjust to the latest compatible version with YOLO
-numpy==1.24.3
-cvzone==1.5.0
-sort==1.0.4  # Replace with a compatible version, check PyPI if needed
+ultralytics>=8.0.0
+numpy>=1.24.3
+cvzone>=1.5.0
+sort==1.0.4
