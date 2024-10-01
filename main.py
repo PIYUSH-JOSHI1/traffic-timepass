@@ -1,54 +1,65 @@
+import streamlit as st
 import numpy as np
 from ultralytics import YOLO
 import cv2
 import cvzone
 import math
-from sort import *
+from sort import Sort
 import threading
-import sys
+from PIL import Image
 
 # Global variables to control the process
 cap = None
 model = None
 running = False
+output_frame = None  # For storing the current frame to be displayed in the Streamlit app
+
+# Streamlit layout
+st.title("Traffic Flow Detection App")
+start_button = st.button("Start Traffic Detection")
+stop_button = st.button("Stop Traffic Detection")
+video_frame = st.empty()  # Placeholder for video frames
+
+# Class names for YOLO model
+classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
+              "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
+              "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
+              "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
+              "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
+              "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
+              "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
+              "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
+              "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
+              "teddy bear", "hair drier", "toothbrush"]
+
+# Limits for lanes
+limits = [
+    [935, 90, 1275, 90],
+    [935, 110, 1275, 110],
+    [1365, 120, 1365, 360],
+    [1385, 120, 1385, 360],
+    [600, 70, 600, 170],
+    [620, 70, 620, 170],
+    [450, 500, 1240, 500],
+    [450, 520, 1240, 520]
+]
+
+totalCounts = [[] for _ in range(4)]
 
 
+# Function to start the traffic detection process
 def start_traffic_detection(video_source):
-    global running
+    global running, cap, model, output_frame
     running = True
     cap = cv2.VideoCapture(video_source)  # For Video
     model = YOLO("yolov8l.pt")
 
-    classNames = ["person", "bicycle", "car", "motorbike", "aeroplane", "bus", "train", "truck", "boat",
-                  "traffic light", "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat",
-                  "dog", "horse", "sheep", "cow", "elephant", "bear", "zebra", "giraffe", "backpack", "umbrella",
-                  "handbag", "tie", "suitcase", "frisbee", "skis", "snowboard", "sports ball", "kite", "baseball bat",
-                  "baseball glove", "skateboard", "surfboard", "tennis racket", "bottle", "wine glass", "cup",
-                  "fork", "knife", "spoon", "bowl", "banana", "apple", "sandwich", "orange", "broccoli",
-                  "carrot", "hot dog", "pizza", "donut", "cake", "chair", "sofa", "pottedplant", "bed",
-                  "diningtable", "toilet", "tvmonitor", "laptop", "mouse", "remote", "keyboard", "cell phone",
-                  "microwave", "oven", "toaster", "sink", "refrigerator", "book", "clock", "vase", "scissors",
-                  "teddy bear", "hair drier", "toothbrush"]
-
     tracker = Sort(max_age=20, min_hits=3, iou_threshold=0.3)
-
-    limits = [
-        [935, 90, 1275, 90],
-        [935, 110, 1275, 110],
-        [1365, 120, 1365, 360],
-        [1385, 120, 1385, 360],
-        [600, 70, 600, 170],
-        [620, 70, 620, 170],
-        [450, 500, 1240, 500],
-        [450, 520, 1240, 520]
-    ]
-
-    totalCounts = [[] for _ in range(4)]
 
     while running:
         success, img = cap.read()
         if not success:
-            print("Video ended or cannot open.")
+            st.warning("Video ended or cannot open.")
             break
 
         imgRegion = cv2.bitwise_and(img, img)
@@ -106,43 +117,24 @@ def start_traffic_detection(video_source):
             cvzone.putTextRect(img, f' Lane {i + 1}: {len(count)}', (25, 75 + (i * 70)), 2, thickness=2,
                                colorR=(147, 245, 186), colorT=(15, 15, 15))
 
-        cv2.imshow("Traffic_Flow_Output", img)
-        cv2.waitKey(1)
+        # Display in Streamlit app
+        img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        output_frame = Image.fromarray(img_rgb)
+        video_frame.image(output_frame)
 
     cap.release()
-    cv2.destroyAllWindows()
 
 
+# Function to stop the traffic detection process
 def stop_traffic_detection():
     global running
     running = False
 
 
-def main_menu(video_source):
-    while True:
-        print("\nOptions:")
-        print("1. Start Traffic Detection")
-        print("2. Stop Traffic Detection")
-        print("3. Exit")
-        choice = input("Choose an option (1-3): ")
-
-        if choice == '1':
-            if not running:
-                print("Starting traffic detection...")
-                threading.Thread(target=start_traffic_detection, args=(video_source,), daemon=True).start()
-            else:
-                print("Traffic detection is already running.")
-        elif choice == '2':
-            stop_traffic_detection()
-            print("Stopping traffic detection...")
-        elif choice == '3':
-            stop_traffic_detection()  # Ensure the process is stopped before exiting
-            print("Exiting...")
-            sys.exit(0)
-        else:
-            print("Invalid choice. Please choose again.")
-
-
-if __name__ == "__main__":
-    video_source = "video/vehical.mp4"  # Replace with your video source
-    main_menu(video_source)
+# Handle button actions in Streamlit
+if start_button and not running:
+    st.write("Starting traffic detection...")
+    threading.Thread(target=start_traffic_detection, args=("video/vehical.mp4",), daemon=True).start()
+elif stop_button:
+    stop_traffic_detection()
+    st.write("Stopping traffic detection...")
